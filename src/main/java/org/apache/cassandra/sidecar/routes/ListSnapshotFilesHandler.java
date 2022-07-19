@@ -77,7 +77,7 @@ public class ListSnapshotFilesHandler extends AbstractHandler
         boolean secondaryIndexFiles = requestParams.includeSecondaryIndexFiles();
 
         builder.build(host, requestParams)
-               .compose(directory -> builder.listSnapshotDirectory(host, directory, secondaryIndexFiles))
+               .compose(file -> builder.listSnapshotDirectory(host, file, secondaryIndexFiles))
                .onSuccess(fileList ->
                           {
                               if (fileList.isEmpty())

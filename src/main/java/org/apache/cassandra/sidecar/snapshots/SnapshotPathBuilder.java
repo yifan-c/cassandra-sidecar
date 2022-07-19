@@ -28,7 +28,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -59,7 +61,7 @@ import org.apache.cassandra.sidecar.common.utils.CassandraInputValidator;
 public class SnapshotPathBuilder
 {
     private static final Logger logger = LoggerFactory.getLogger(SnapshotPathBuilder.class);
-    private static final String DATA_SUB_DIR = "/data";
+    private static final String DATA_SUB_DIR = "data";
     public static final int SNAPSHOTS_MAX_DEPTH = 5;
     public static final String SNAPSHOTS_DIR_NAME = "snapshots";
     protected final Vertx vertx;
@@ -96,7 +98,7 @@ public class SnapshotPathBuilder
      * @param request the request to stream the SSTable component
      * @return the absolute path of the component
      */
-    public Future<String> build(String host, StreamSSTableComponentRequest request)
+    public Future<SnapshotFile> build(String host, StreamSSTableComponentRequest request)
     {
         validate(request);
         // Search for the file
@@ -116,7 +118,7 @@ public class SnapshotPathBuilder
      * @param request the request to list the snapshot files
      * @return the absolute path of the snapshot directory
      */
-    public Future<String> build(String host, ListSnapshotFilesRequest request)
+    public Future<SnapshotFile> build(String host, ListSnapshotFilesRequest request)
     {
         return getDataDirectories(host)
                .compose(dataDirs -> findKeyspaceDirectory(dataDirs, request.getKeyspace()))
@@ -133,42 +135,27 @@ public class SnapshotPathBuilder
      * @return a future with a list of files inside the snapshot directory
      */
     public Future<List<SnapshotFile>> listSnapshotDirectory(String host,
-                                                            String snapshotDirectory,
+                                                            SnapshotFile file,
                                                             boolean includeSecondaryIndexFiles)
     {
         return getDataDirectories(host)
                .compose(dataDirs ->
-               {
-                   Path path = Paths.get(snapshotDirectory);
-                   String keyspace = path.getName(path.getNameCount() - KEYSPACE_SUBPATH_INDEX_FROM_END)
-                                         .toString();
-                   String tableName = path.getName(path.getNameCount() - TABLE_NAME_SUBPATH_INDEX_FROM_END)
-                                          .toString();
-                   int dataDirectoryIndex = determineDataDirectoryIndex(dataDirs, snapshotDirectory);
-
-                   return listSnapshotDirectory(snapshotDirectory,
-                                                keyspace,
-                                                tableName,
-                                                includeSecondaryIndexFiles,
-                                                dataDirectoryIndex);
-               });
+                            listSnapshotDirectory(file,
+                                                  includeSecondaryIndexFiles));
     }
 
-    private Future<List<SnapshotFile>> listSnapshotDirectory(String snapshotDirectory,
-                                                             String keyspace,
-                                                             String tableName,
-                                                             boolean includeSecondaryIndexFiles,
-                                                             int dataDirectoryIndex)
+    private Future<List<SnapshotFile>> listSnapshotDirectory(SnapshotFile file,
+                                                             boolean includeSecondaryIndexFiles)
     {
         Promise<List<SnapshotFile>> promise = Promise.promise();
 
         // List the snapshot directory
-        fs.readDir(snapshotDirectory)
+        fs.readDir(file.path)
           .onFailure(promise::fail)
           .onSuccess(list ->
           {
 
-              logger.debug("Found {} files in snapshot directory '{}'", list.size(), snapshotDirectory);
+              logger.debug("Found {} files in snapshot directory '{}'", list.size(), file.path);
 
               // Prepare futures to get properties for all the files from listing the snapshot directory
               //noinspection rawtypes
@@ -192,11 +179,8 @@ public class SnapshotPathBuilder
                                           .mapToObj(i ->
                                           {
                                               String fileName = Paths.get(list.get(i)).getFileName().toString();
-                                              return new SnapshotFile(keyspace,
-                                                                      tableName,
-                                                                      fileName,
-                                                                      ar.<FileProps>resultAt(i).size(),
-                                                                      dataDirectoryIndex);
+                                              file.fileName = fileName;
+                                              return file;
                                           })
                                           .collect(Collectors.toList());
 
@@ -225,11 +209,7 @@ public class SnapshotPathBuilder
                                                       }
                                                       return false;
                                                   })
-                                          .mapToObj(i -> listSnapshotDirectory(list.get(i),
-                                                                               keyspace,
-                                                                               tableName,
-                                                                               false,
-                                                                               dataDirectoryIndex))
+                                          .mapToObj(i -> listSnapshotDirectory(file, false))
                                           .collect(Collectors.toList());
                                  if (idxListFutures.isEmpty())
                                  {
@@ -238,7 +218,7 @@ public class SnapshotPathBuilder
                                      return;
                                  }
                                  logger.debug("Found {} index directories in the '{}' snapshot",
-                                              idxListFutures.size(), snapshotDirectory);
+                                              idxListFutures.size(), file.path);
                                  // if we have index directories, list them all
                                  CompositeFuture.all(idxListFutures)
                                                 .onFailure(promise::fail)
@@ -357,16 +337,16 @@ public class SnapshotPathBuilder
      * @param keyspace the name of the Cassandra keyspace
      * @return the directory of the keyspace when it is found, or failure if not found
      */
-    protected Future<String> findKeyspaceDirectory(List<String> dataDirs, String keyspace)
+    protected Future<SnapshotFile> findKeyspaceDirectory(List<String> dataDirs, String keyspace)
     {
-        List<Future<String>> candidates = buildPotentialKeyspaceDirectoryList(dataDirs, keyspace);
+        List<Future<SnapshotFile>> candidates = buildPotentialKeyspaceDirectoryList(dataDirs, keyspace);
         // We want to find the first valid directory in this case. If a future fails, we
         // recover by checking each candidate for existence.
         // Whenever the first successful future returns, we short-circuit the rest.
-        Future<String> root = candidates.get(0);
+        Future<SnapshotFile> root = candidates.get(0);
         for (int i = 1; i < candidates.size(); i++)
         {
-            Future<String> f = candidates.get(i);
+            Future<SnapshotFile> f = candidates.get(i);
             root = root.recover(v -> f);
         }
         return root.recover(t ->
@@ -384,14 +364,24 @@ public class SnapshotPathBuilder
      * @param keyspace the Cassandra keyspace
      * @return a list of potential directories for the keyspace
      */
-    private List<Future<String>> buildPotentialKeyspaceDirectoryList(List<String> dataDirs, String keyspace)
+    private List<Future<SnapshotFile>> buildPotentialKeyspaceDirectoryList(List<String> dataDirs, String keyspace)
     {
-        List<Future<String>> candidates = new ArrayList<>(dataDirs.size() * 2);
-        for (String baseDirectory : dataDirs)
+        List<Future<SnapshotFile>> candidates = new ArrayList<>(dataDirs.size() * 2);
+        BiFunction<String, Integer, SnapshotFile> snapshotFileFunc = (path, index) -> {
+            SnapshotFile f = new SnapshotFile();
+            f.path = path;
+            f.keyspace = keyspace;
+            f.dataDirectoryIndex = index;
+            return f;
+        };
+        for (int i = 0; i < dataDirs.size(); i++)
         {
-            String dir = StringUtils.removeEnd(baseDirectory, File.separator);
-            candidates.add(isValidDirectory(dir + File.separator + keyspace));
-            candidates.add(isValidDirectory(dir + DATA_SUB_DIR + File.separator + keyspace));
+            final int index = i;
+            String dir = StringUtils.removeEnd(dataDirs.get(i), File.separator);
+            candidates.add(isValidDirectory(dir + File.separator + keyspace)
+                               .map(path -> snapshotFileFunc.apply(path, index)));
+            candidates.add(isValidDirectory(dir + File.separator + DATA_SUB_DIR + File.separator + keyspace)
+                               .map(path -> snapshotFileFunc.apply(path, index)));
         }
         return candidates;
     }
@@ -406,10 +396,15 @@ public class SnapshotPathBuilder
      * @param tableName     the name of the table
      * @return the most recent directory for the given {@code tableName} in the {@code baseDirectory}
      */
-    protected Future<String> findTableDirectory(String baseDirectory, String tableName)
+    protected Future<SnapshotFile> findTableDirectory(SnapshotFile file, String tableName)
     {
-        return fs.readDir(baseDirectory, tableName + "($|-.*)") // match exact table name or table-.*
-                 .compose(list -> getLastModifiedTableDirectory(list, tableName));
+        return fs.readDir(file.path, tableName + "($|-.*)") // match exact table name or table-.*
+                 .compose(list -> getLastModifiedTableDirectory(list, tableName))
+                 .map(path -> {
+                     file.path = path;
+                     file.tableName = new File(path).getName();
+                     return file;
+                 });
     }
 
     /**
@@ -420,18 +415,21 @@ public class SnapshotPathBuilder
      * @param snapshotName  the name of the snapshot
      * @return a future for the path to the snapshot directory if it's valid, or a failed future otherwise
      */
-    protected Future<String> findSnapshotDirectory(String baseDirectory, String snapshotName)
+    protected Future<SnapshotFile> findSnapshotDirectory(SnapshotFile file, String snapshotName)
     {
-        String snapshotDirectory = StringUtils.removeEnd(baseDirectory, File.separator) +
+        String snapshotDirectory = StringUtils.removeEnd(file.path, File.separator) +
                                    File.separator + SNAPSHOTS_DIR_NAME + File.separator + snapshotName;
 
         return isValidDirectory(snapshotDirectory)
-               .recover(t ->
-                        {
-                            String errMsg = String.format("Snapshot directory '%s' does not exist", snapshotName);
-                            logger.warn("Snapshot directory {} does not exist in {}", snapshotName, snapshotDirectory);
-                            return Future.failedFuture(new FileNotFoundException(errMsg));
-                        });
+                   .map(path -> {
+                       file.path = path;
+                       return file;
+                   })
+                   .recover(t -> {
+                       String errMsg = String.format("Snapshot directory '%s' does not exist", snapshotName);
+                       logger.warn("Snapshot directory {} does not exist in {}", snapshotName, snapshotDirectory);
+                       return Future.failedFuture(new FileNotFoundException(errMsg));
+                   });
     }
 
     /**
@@ -443,21 +441,25 @@ public class SnapshotPathBuilder
      * @param componentName the name of the component
      * @return the path to the component if it's valid, a failure otherwise
      */
-    protected Future<String> findComponent(String baseDirectory, String snapshotName, String componentName)
+    protected Future<SnapshotFile> findComponent(SnapshotFile file, String snapshotName, String componentName)
     {
-        String componentFilename = StringUtils.removeEnd(baseDirectory, File.separator) +
+        String componentFilename = StringUtils.removeEnd(file.path, File.separator) +
                                    File.separator + SNAPSHOTS_DIR_NAME + File.separator + snapshotName +
                                    File.separator + componentName;
 
         return isValidFilename(componentFilename)
-               .recover(t ->
-                        {
-                            logger.warn("Snapshot directory {} or component {} does not exist in {}", snapshotName,
-                                        componentName, componentFilename);
-                            String errMsg = String.format("Component '%s' does not exist for snapshot '%s'",
-                                                          componentName, snapshotName);
-                            return Future.failedFuture(new FileNotFoundException(errMsg));
-                        });
+                   .map(path -> {
+                       file.path = path;
+                       file.fileName = new File(path).getName();
+                       return file;
+                   })
+                   .recover(t -> {
+                       logger.warn("Snapshot directory {} or component {} does not exist in {}", snapshotName,
+                                   componentName, componentFilename);
+                       String errMsg = String.format("Component '%s' does not exist for snapshot '%s'",
+                                                     componentName, snapshotName);
+                       return Future.failedFuture(new FileNotFoundException(errMsg));
+                   });
     }
 
     /**
@@ -514,7 +516,7 @@ public class SnapshotPathBuilder
      */
     protected Future<String> getLastModifiedTableDirectory(List<String> fileList, String tableName)
     {
-        if (fileList.size() == 0)
+        if (fileList.isEmpty())
         {
             String errMsg = String.format("Table '%s' does not exist", tableName);
             return Future.failedFuture(new FileNotFoundException(errMsg));
@@ -578,11 +580,17 @@ public class SnapshotPathBuilder
      */
     public static class SnapshotFile
     {
-        private final String keyspace;
-        private final String tableName;
-        private final String fileName;
-        private final long size;
-        private final int dataDirectoryIndex;
+        private String path;
+        private String keyspace;
+        private String tableName;
+        private String fileName;
+        private long size;
+        private int dataDirectoryIndex;
+
+        SnapshotFile()
+        {
+
+        }
 
         SnapshotFile(String keyspace, String tableName, String fileName, long size, int dataDirectoryIndex)
         {
