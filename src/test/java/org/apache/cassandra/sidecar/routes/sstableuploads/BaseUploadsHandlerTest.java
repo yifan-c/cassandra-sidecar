@@ -181,7 +181,7 @@ class BaseUploadsHandlerTest
         public Configuration abstractConfig(InstancesConfig instancesConfig)
         {
             when(mockConfiguration.getInstancesConfig()).thenReturn(instancesConfig);
-            when(mockConfiguration.getHost()).thenReturn("127.0.0.1");
+            when(mockConfiguration.getHost()).thenReturn("localhost");
             when(mockConfiguration.getPort()).thenReturn(6475);
             when(mockConfiguration.getHealthCheckFrequencyMillis()).thenReturn(1000);
             when(mockConfiguration.isSslEnabled()).thenReturn(false);

@@ -129,7 +129,7 @@ public class GossipInfoHandlerTest
         public InstancesConfig instanceConfig() throws IOException
         {
             final int instanceId = 100;
-            final String host = "127.0.0.1";
+            final String host = "localhost";
             final InstanceMetadata instanceMetadata = mock(InstanceMetadata.class);
             when(instanceMetadata.host()).thenReturn(host);
             when(instanceMetadata.port()).thenReturn(9042);

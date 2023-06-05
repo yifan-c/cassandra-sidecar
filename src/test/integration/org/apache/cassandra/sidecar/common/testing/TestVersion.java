@@ -18,36 +18,20 @@
 
 package org.apache.cassandra.sidecar.common.testing;
 
-import org.apache.cassandra.sidecar.common.ICassandraFactory;
-
 /**
  * Works with {@link TestVersionSupplier}
  */
 public class TestVersion
 {
     private final String version;
-    private final ICassandraFactory factory;
-    private final String image;
 
-    public TestVersion(String version, ICassandraFactory factory, String image)
+    public TestVersion(String version)
     {
         this.version = version;
-        this.factory = factory;
-        this.image = image;
     }
 
     public String version()
     {
         return version;
-    }
-
-    public ICassandraFactory getFactory()
-    {
-        return factory;
-    }
-
-    public String image()
-    {
-        return image;
     }
 }

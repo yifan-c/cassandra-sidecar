@@ -49,4 +49,5 @@ public interface ICassandraAdapter
      * @return the {@link TableOperations} implementation for the Cassandra cluster
      */
     TableOperations tableOperations();
+
 }

@@ -1,8 +1,10 @@
 rootProject.name = "cassandra-sidecar"
 
-include "cassandra40"
+include "adapters:latest"
+include "adapters:cassandra311"
 include "common"
 include "client"
 include "vertx-client"
 include "vertx-client-shaded"
 include "docs"
+

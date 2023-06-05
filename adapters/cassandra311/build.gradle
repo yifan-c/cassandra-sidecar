@@ -1,0 +1,31 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+    id 'maven-publish'
+    id "com.github.spotbugs"
+}
+
+group 'org.apache.cassandra.sidecar'
+version project.version
+
+sourceCompatibility = 1.8
+
+test {
+    useJUnitPlatform()
+}
+
+dependencies {
+    implementation(project(":adapters:latest"))
+
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId "${archivesBaseName}"
+            version System.getenv("CODE_VERSION") ?: "${version}"
+        }
+    }
+}

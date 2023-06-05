@@ -41,7 +41,8 @@ import io.vertx.ext.web.handler.ErrorHandler;
 import io.vertx.ext.web.handler.LoggerHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
-import org.apache.cassandra.sidecar.cassandra40.Cassandra40Factory;
+import org.apache.cassandra.sidecar.adapters.cassandra311.Cassandra311Factory;
+import org.apache.cassandra.sidecar.adapters.trunk.CassandraFactory;
 import org.apache.cassandra.sidecar.cluster.InstancesConfig;
 import org.apache.cassandra.sidecar.common.ApiEndpointsV1;
 import org.apache.cassandra.sidecar.common.CassandraVersionProvider;
@@ -265,9 +266,10 @@ public class MainModule extends AbstractModule
     @Singleton
     public CassandraVersionProvider cassandraVersionProvider(DnsResolver dnsResolver)
     {
-        CassandraVersionProvider.Builder builder = new CassandraVersionProvider.Builder();
-        builder.add(new Cassandra40Factory(dnsResolver));
-        return builder.build();
+        return new CassandraVersionProvider.Builder()
+               .add(new Cassandra311Factory(dnsResolver))
+               .add(new CassandraFactory(dnsResolver))
+               .build();
     }
 
     @Provides

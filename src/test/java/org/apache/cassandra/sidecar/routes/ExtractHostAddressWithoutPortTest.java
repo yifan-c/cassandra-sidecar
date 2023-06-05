@@ -30,15 +30,15 @@ class ExtractHostAddressWithoutPortTest
     @Test
     void testAddressWithIPv4Host()
     {
-        final String host = AbstractHandler.extractHostAddressWithoutPort("127.0.0.1");
-        assertEquals("127.0.0.1", host);
+        final String host = AbstractHandler.extractHostAddressWithoutPort("localhost");
+        assertEquals("localhost", host);
     }
 
     @Test
     void testAddressIPv4HostAndPort()
     {
-        final String host = AbstractHandler.extractHostAddressWithoutPort("127.0.0.1:9043");
-        assertEquals("127.0.0.1", host);
+        final String host = AbstractHandler.extractHostAddressWithoutPort("localhost:9043");
+        assertEquals("localhost", host);
     }
 
     @Test

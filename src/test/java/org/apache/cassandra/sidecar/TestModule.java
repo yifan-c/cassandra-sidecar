@@ -67,7 +67,7 @@ public class TestModule extends AbstractModule
                                                                            30000);
         return new Configuration.Builder()
                .setInstancesConfig(instancesConfig)
-               .setHost("127.0.0.1")
+               .setHost("localhost")
                .setPort(6475)
                .setHealthCheckFrequency(1000)
                .setSslEnabled(false)
