@@ -38,7 +38,7 @@ The build script supports two parameters:
 - `REPO` - the Cassandra git repository to use for the source files. This is helpful if you need to test with a fork of the Cassandra codebase.
   - default: `git@github.com:apache/cassandra.git`
 - `BRANCHES` - a space-delimited list of branches to build.
-  -default: `"cassandra-3.11 cassandra-4.1"`
+  -default: `"cassandra-4.1 trunk"`
 
 
 Optionally, if you run everything under JDK8 you can also build 3.11 - just add the branch `jmx-in-jvm-dtest-3.11`
