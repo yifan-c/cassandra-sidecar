@@ -145,7 +145,8 @@ public class CassandraTestTemplate implements TestTemplateInvocationContextProvi
                                               config.with(Feature.NETWORK);
                                           }
                                       });
-                    TokenSupplier tokenSupplier = TokenSupplier.evenlyDistributedTokens(finalNodeCount, builder.getTokenCount());
+                    TokenSupplier tokenSupplier = TokenSupplier.evenlyDistributedTokens(finalNodeCount,
+                                                                                        builder.getTokenCount());
                     builder.withTokenSupplier(tokenSupplier);
                     cluster = builder.start();
 

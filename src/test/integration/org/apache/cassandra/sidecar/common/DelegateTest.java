@@ -41,8 +41,12 @@ class DelegateTest
                                                        .add(new CassandraFactory(DnsResolver.DEFAULT))
                                                        .build();
         InstanceMetadata instanceMetadata = context.instancesConfig.instances().get(0);
-        CQLSessionProvider sessionProvider = new CQLSessionProvider(instanceMetadata.host(), instanceMetadata.port(), 1000);
-        CassandraAdapterDelegate delegate = new CassandraAdapterDelegate(versionProvider, sessionProvider, context.jmxClient());
+        CQLSessionProvider sessionProvider = new CQLSessionProvider(instanceMetadata.host(),
+                                                                    instanceMetadata.port(),
+                                                                    1000);
+        CassandraAdapterDelegate delegate = new CassandraAdapterDelegate(versionProvider,
+                                                                         sessionProvider,
+                                                                         context.jmxClient());
         return delegate;
     }
 
