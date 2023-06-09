@@ -38,7 +38,6 @@ import org.apache.cassandra.distributed.UpgradeableCluster;
 import org.apache.cassandra.distributed.api.Feature;
 import org.apache.cassandra.distributed.api.TokenSupplier;
 import org.apache.cassandra.distributed.shared.Versions;
-import org.apache.cassandra.sidecar.adapters.cassandra311.Cassandra311Factory;
 import org.apache.cassandra.sidecar.adapters.trunk.CassandraFactory;
 import org.apache.cassandra.sidecar.common.CassandraVersionProvider;
 import org.apache.cassandra.sidecar.common.SimpleCassandraVersion;
@@ -201,7 +200,6 @@ public class CassandraTestTemplate implements TestTemplateInvocationContextProvi
     public CassandraVersionProvider cassandraVersionProvider(DnsResolver dnsResolver)
     {
         return new CassandraVersionProvider.Builder()
-               .add(new Cassandra311Factory(dnsResolver))
                .add(new CassandraFactory(dnsResolver)).build();
     }
 

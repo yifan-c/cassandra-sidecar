@@ -58,8 +58,9 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- We need to include these in the final shaded jar explicitly
-             as 3.11 and 4.0 don't pull it in on their own
+        <!-- We need to include reflections in the final shaded jar explicitly
+             as 4.0 doesn't pull it in on its own due to a not-backported fix
+             in later dtest jars
          -->
         <dependency>
             <groupId>org.reflections</groupId>

@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.exceptions.TransportException;
 import org.apache.cassandra.distributed.api.NodeToolResult;
-import org.apache.cassandra.sidecar.adapters.cassandra311.Cassandra311Factory;
 import org.apache.cassandra.sidecar.adapters.trunk.CassandraFactory;
 import org.apache.cassandra.sidecar.cluster.instance.InstanceMetadata;
 import org.apache.cassandra.sidecar.common.dns.DnsResolver;
@@ -39,7 +38,6 @@ class DelegateTest
     private static CassandraAdapterDelegate getCassandraAdapterDelegate(CassandraTestContext context)
     {
         CassandraVersionProvider versionProvider = new CassandraVersionProvider.Builder()
-                                                       .add(new Cassandra311Factory(DnsResolver.DEFAULT))
                                                        .add(new CassandraFactory(DnsResolver.DEFAULT))
                                                        .build();
         InstanceMetadata instanceMetadata = context.instancesConfig.instances().get(0);

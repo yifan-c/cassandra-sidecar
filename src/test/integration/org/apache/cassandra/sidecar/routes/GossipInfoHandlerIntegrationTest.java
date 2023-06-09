@@ -36,8 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(VertxExtension.class)
 class GossipInfoHandlerIntegrationTest extends IntegrationTestBase
 {
-    // In 3.11, gossip must be enabled for this test to get the release version
-    @CassandraIntegrationTest(gossip = true)
+    @CassandraIntegrationTest()
     void retrieveGossipInfo(VertxTestContext context, CassandraTestContext cassandraTestContext) throws Exception
     {
         String testRoute = "/api/v1/cassandra/gossip";

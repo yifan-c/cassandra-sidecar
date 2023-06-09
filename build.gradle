@@ -156,7 +156,6 @@ dependencies {
 
     implementation(project("common"))
     implementation(project(":adapters:latest"))
-    implementation(project(":adapters:cassandra311"))
 
     testFixturesApi(testFixtures(project(":common")))
     testFixturesImplementation("io.vertx:vertx-junit5:${project.vertxVersion}")

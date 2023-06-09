@@ -40,13 +40,11 @@ The build script supports two parameters:
 - `BRANCHES` - a space-delimited list of branches to build.
   -default: `"cassandra-4.1 trunk"`
 
-
-Optionally, if you run everything under JDK8 you can also build 3.11 - just add the branch `jmx-in-jvm-dtest-3.11`
 Remove any versions you may not want to test with. We recommend at least the latest (released) 4.X series and `trunk`.
 
-The test framework is set up to run 3.11 and 4.1 (Trunk) tests (see `TestVersionSupplier.java`) by default.  
+The test framework is set up to run 4.1 and 5.0 (Trunk) tests (see `TestVersionSupplier.java`) by default.  
 You can change this via the Java property `cassandra.sidecar.versions_to_test` by supplying a comma-delimited string.
-For example, `-Dcassandra.sidecar.versions_to_test=3.11,4.0,4.1,5.0`.
+For example, `-Dcassandra.sidecar.versions_to_test=4.0,4.1,5.0`.
 
 In order for tests to run successfully under JDK11, you'll need to add the following JVM arguments to your test runner of choice.
 You should also set your test framework to fork a new process at least every class, if not every method, as there are still

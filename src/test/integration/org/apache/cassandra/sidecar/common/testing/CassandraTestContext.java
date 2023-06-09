@@ -107,7 +107,8 @@ public class CassandraTestContext implements Closeable
         {
             return config.getInt(configName);
         }
-        catch (NullPointerException npe) {
+        catch (NullPointerException npe)
+        {
             return defaultValue;
         }
     }
