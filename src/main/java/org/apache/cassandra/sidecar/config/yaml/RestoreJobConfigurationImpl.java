@@ -36,10 +36,9 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
     public static final int DEFAULT_JOB_DISCOVERY_RECENCY_DAYS = 5;
     public static final int DEFAULT_PROCESS_MAX_CONCURRENCY = 20; // process at most 20 slices concurrently
     public static final long DEFAULT_RESTORE_JOB_TABLES_TTL_SECONDS = TimeUnit.DAYS.toSeconds(90);
-    public static final String RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS =
-    "restore_job_long_running_threshold_seconds";
     // A restore job handler is considered long-running if it has been in the "active" list for 10 minutes.
-    private static final long DEFAULT_RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS = 600;
+    private static final long DEFAULT_RESTORE_JOB_LONG_RUNNING_TASK_THRESHOLD_SECONDS = TimeUnit.MINUTES.toSeconds(10);
+    public static final long DEFAULT_RING_TOPOLOGY_REFRESH_DELAY_MILLIS = TimeUnit.MINUTES.toMillis(1);
 
     @JsonProperty(value = "job_discovery_active_loop_delay_millis")
     protected final long jobDiscoveryActiveLoopDelayMillis;
@@ -56,10 +55,11 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
     @JsonProperty(value = "restore_job_tables_ttl_seconds")
     protected final long restoreJobTablesTtlSeconds;
 
-
-    @JsonProperty(value = RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS,
-    defaultValue = DEFAULT_RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS + "")
+    @JsonProperty(value = "restore_job_long_running_threshold_seconds")
     private final long restoreJobLongRunningThresholdSeconds;
+
+    @JsonProperty(value = "ring_topology_refresh_delay_millis")
+    private final long ringTopologyRefreshDelayMillis;
 
     protected RestoreJobConfigurationImpl()
     {
@@ -74,6 +74,7 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
         this.processMaxConcurrency = builder.processMaxConcurrency;
         this.restoreJobTablesTtlSeconds = builder.restoreJobTablesTtlSeconds;
         this.restoreJobLongRunningThresholdSeconds = builder.restoreJobLongRunningThresholdSeconds;
+        this.ringTopologyRefreshDelayMillis = builder.ringTopologyRefreshDelayMillis;
         validate();
     }
 
@@ -142,12 +143,24 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
         return restoreJobTablesTtlSeconds;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    @JsonProperty(value = RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS,
-                  defaultValue = DEFAULT_RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS + "")
+    @JsonProperty(value = "restore_job_long_running_threshold_seconds")
     public long restoreJobLongRunningHandlerThresholdSeconds()
     {
         return restoreJobLongRunningThresholdSeconds;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @JsonProperty(value = "ring_topology_refresh_delay_millis")
+    public long ringTopologyRefreshDelayMillis()
+    {
+        return ringTopologyRefreshDelayMillis;
     }
 
     public static Builder builder()
@@ -160,13 +173,14 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
      */
     public static class Builder implements DataObjectBuilder<Builder, RestoreJobConfigurationImpl>
     {
-        protected long restoreJobLongRunningThresholdSeconds =
-        DEFAULT_RESTORE_JOB_LONG_RUNNING_HANDLER_THRESHOLD_SECONDS;
+        private long restoreJobLongRunningThresholdSeconds =
+        DEFAULT_RESTORE_JOB_LONG_RUNNING_TASK_THRESHOLD_SECONDS;
         private long jobDiscoveryActiveLoopDelayMillis = DEFAULT_JOB_DISCOVERY_ACTIVE_LOOP_DELAY_MILLIS;
         private long jobDiscoveryIdleLoopDelayMillis = DEFAULT_JOB_DISCOVERY_IDLE_LOOP_DELAY_MILLIS;
         private int jobDiscoveryRecencyDays = DEFAULT_JOB_DISCOVERY_RECENCY_DAYS;
         private int processMaxConcurrency = DEFAULT_PROCESS_MAX_CONCURRENCY;
         private long restoreJobTablesTtlSeconds = DEFAULT_RESTORE_JOB_TABLES_TTL_SECONDS;
+        private long ringTopologyRefreshDelayMillis = DEFAULT_RING_TOPOLOGY_REFRESH_DELAY_MILLIS;
 
         protected Builder()
         {
@@ -248,6 +262,18 @@ public class RestoreJobConfigurationImpl implements RestoreJobConfiguration
         public Builder restoreJobLongRunningThresholdSeconds(long restoreJobLongRunningThresholdSeconds)
         {
             return update(b -> b.restoreJobLongRunningThresholdSeconds = restoreJobLongRunningThresholdSeconds);
+        }
+
+        /**
+         * Sets the {@code ringTopologyRefreshDelayMillis} and returns a reference to this Builder enabling
+         * method chaining.
+         *
+         * @param ringTopologyRefreshDelayMillis the {@code ringTopologyRefreshDelayMillis} to set
+         * @return a reference to this Builder
+         */
+        public Builder ringTopologyRefreshDelayMillis(long ringTopologyRefreshDelayMillis)
+        {
+            return update(b -> b.ringTopologyRefreshDelayMillis = ringTopologyRefreshDelayMillis);
         }
 
         @Override

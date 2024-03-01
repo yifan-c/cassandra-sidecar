@@ -53,4 +53,9 @@ public interface RestoreJobConfiguration
      * @return the number of seconds above which a restore handler is considered "long-running"
      */
     long restoreJobLongRunningHandlerThresholdSeconds();
+
+    /**
+     * @return the delay in milliseconds for {@link org.apache.cassandra.sidecar.restore.RingTopologyRefresher}
+     */
+    long ringTopologyRefreshDelayMillis();
 }

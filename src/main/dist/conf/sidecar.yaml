@@ -177,6 +177,7 @@ blob_restore:
   job_discovery_recency_days: 5
   slice_process_max_concurrency: 20
   restore_job_tables_ttl_seconds: 7776000
+  ring_topology_refresh_delay_millis: 60000
 
 s3_client:
   concurrency: 4
