@@ -25,6 +25,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -226,14 +228,29 @@ class RestoreSliceTaskTest
         assertThat(sliceDatabaseAccessor.updateInvokedTimes.get()).isOne();
     }
 
+    @Test
+    void testSliceDuration()
+    {
+        RestoreJob job = RestoreJobTest.createTestingJob(UUIDs.timeBased(), RestoreJobStatus.STAGED, "QUORUM");
+        AtomicLong currentNanos = new AtomicLong(0);
+        RestoreSliceTask task = createTask(mockSlice, job, currentNanos::get);
+        currentNanos.set(123L);
+        assertThat(task.getDuration()).isEqualTo(123L);
+    }
+
     private RestoreSliceTask createTask(RestoreSlice slice, RestoreJob job)
+    {
+        return createTask(slice, job, System::nanoTime);
+    }
+
+    private RestoreSliceTask createTask(RestoreSlice slice, RestoreJob job, Supplier<Long> currentNanoTimeSupplier)
     {
         when(slice.job()).thenReturn(job);
         assertThat(slice.job()).isSameAs(job);
         assertThat(slice.job().isManagedBySidecar()).isEqualTo(job.isManagedBySidecar());
         assertThat(slice.job().status).isEqualTo(job.status);
         return new TestRestoreSliceTask(slice, mockStorageClient, executorPool, mockSSTableImporter,
-                                        0, sliceDatabaseAccessor, stats);
+                                        0, sliceDatabaseAccessor, stats, currentNanoTimeSupplier);
     }
 
     static class TestRestoreSliceAccessor extends RestoreSliceDatabaseAccessor
@@ -260,10 +277,11 @@ class RestoreSliceTaskTest
 
         public TestRestoreSliceTask(RestoreSlice slice, StorageClient s3Client, TaskExecutorPool executorPool,
                                     SSTableImporter importer, double requiredUsableSpacePercentage,
-                                    RestoreSliceDatabaseAccessor sliceDatabaseAccessor, RestoreJobStats stats)
+                                    RestoreSliceDatabaseAccessor sliceDatabaseAccessor, RestoreJobStats stats,
+                                    Supplier<Long> currentNanoTimeSupplier)
         {
-            super(slice, s3Client, executorPool, importer, requiredUsableSpacePercentage, sliceDatabaseAccessor, stats,
-                  null);
+            super(slice, s3Client, executorPool, importer, requiredUsableSpacePercentage,
+                  sliceDatabaseAccessor, stats, null, currentNanoTimeSupplier);
             this.slice = slice;
             this.stats = stats;
         }
