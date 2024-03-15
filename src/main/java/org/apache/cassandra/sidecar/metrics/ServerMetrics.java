@@ -18,8 +18,6 @@
 
 package org.apache.cassandra.sidecar.metrics;
 
-import java.util.Objects;
-
 import com.codahale.metrics.DefaultSettableGauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.inject.Inject;
@@ -31,29 +29,25 @@ import com.google.inject.Singleton;
 @Singleton
 public class ServerMetrics
 {
-    public static final String FEATURE = "sidecar.server";
-    protected final MetricRegistry metricRegistry;
-    protected final DefaultSettableGauge<Integer> cassandraInstancesUp;
-    protected final DefaultSettableGauge<Integer> cassandraInstancesDown;
+    public static final String DOMAIN = "sidecar.server";
+
+    // review note: declare public and use the metric directly for simplicity, instead of creating corresponding methods to update
+    public final NamedMetric<DefaultSettableGauge<Integer>> cassandraInstancesDown;
+    public final NamedMetric<DefaultSettableGauge<Integer>> cassandraInstancesUp;
 
     @Inject
     public ServerMetrics(MetricRegistry metricRegistry)
     {
-        this.metricRegistry = Objects.requireNonNull(metricRegistry, "MetricRegistry can not be null");
+        cassandraInstancesDown =
+        NamedMetric.builder(name -> metricRegistry.gauge(name, () -> new DefaultSettableGauge<>(0)))
+                   .withDomain(DOMAIN)
+                   .withName("instances_down")
+                   .build();
 
-        cassandraInstancesUp = metricRegistry.gauge(new MetricName(FEATURE, "instances_up").toString(),
-                                                    () -> new DefaultSettableGauge<>(0));
-        cassandraInstancesDown = metricRegistry.gauge(new MetricName(FEATURE, "instances_down").toString(),
-                                                      () -> new DefaultSettableGauge<>(0));
-    }
-
-    public void recordInstancesUp(int count)
-    {
-        cassandraInstancesUp.setValue(count);
-    }
-
-    public void recordInstancesDown(int count)
-    {
-        cassandraInstancesDown.setValue(count);
+        cassandraInstancesUp =
+        NamedMetric.builder(name -> metricRegistry.gauge(name, () -> new DefaultSettableGauge<>(0)))
+                   .withDomain(DOMAIN)
+                   .withName("instances_up")
+                   .build();
     }
 }
