@@ -115,7 +115,7 @@ public class SSTableUploadHandler extends AbstractHandler<SSTableUploadRequest>
         // accept the upload.
         httpRequest.pause();
 
-        InstanceMetrics instanceMetrics = metadataFetcher.instance(host).metrics();
+        InstanceMetrics instanceMetrics = metadataFetcher.instance(host).instanceMetrics();
         UploadSSTableMetrics.UploadSSTableComponentMetrics componentMetrics
         = instanceMetrics.uploadSSTable().forComponent(parseSSTableComponent(request.component()));
 
@@ -123,7 +123,7 @@ public class SSTableUploadHandler extends AbstractHandler<SSTableUploadRequest>
         if (!limiter.tryAcquire())
         {
             String message = String.format("Concurrent upload limit (%d) exceeded", limiter.limit());
-            instanceMetrics.uploadSSTable().rateLimitedCalls.metric.setValue(1);
+            instanceMetrics.uploadSSTable().throttled.metric.update(1);
             context.fail(wrapHttpException(HttpResponseStatus.TOO_MANY_REQUESTS, message));
             return;
         }

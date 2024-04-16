@@ -127,7 +127,7 @@ public class FileStreamer
                                 Instant startTime,
                                 Promise<Void> promise)
     {
-        InstanceMetrics instanceMetrics = instanceMetadataFetcher.instance(instanceId).metrics();
+        InstanceMetrics instanceMetrics = instanceMetadataFetcher.instance(instanceId).instanceMetrics();
         StreamSSTableMetrics streamSSTableMetrics = instanceMetrics.streamSSTable();
         if (acquire(response, instanceId, filename, fileLength, range, startTime, streamSSTableMetrics, promise))
         {
@@ -193,7 +193,7 @@ public class FileStreamer
             LOGGER.debug("Asking client {} to retry after {} micros. Instance: {}", response.remoteAddress(),
                          microsToWait, response.host());
             response.setRetryAfterHeader(microsToWait);
-            streamSSTableMetrics.rateLimitedCalls.metric.setValue(1);
+            streamSSTableMetrics.throttled.metric.update(1);
             promise.fail(new HttpException(TOO_MANY_REQUESTS.code(), "Ask client to retry later"));
         }
         return false;
